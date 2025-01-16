@@ -3,14 +3,12 @@ import 'dotenv/config';
 
 /**
  * @param {GuildMember} member
- * @param {string} roleName
+ * @param {string} roleID
  * @returns {boolean}
  */
-
-function hasRole(member: GuildMember, roleName: string): boolean {
+function hasExcludedRole(member: GuildMember, roleID: string): boolean {
 	return member.roles.cache.some(
-		(role: Role) =>
-			role.name === roleName && !excludedRoleIds.includes(role.id)
+		(role: Role) => role.id === roleID && !excludedRoleIds.includes(role.id)
 	);
 }
 
@@ -24,4 +22,4 @@ const excludedRoleIds = [
 	'1140807638364467380',
 ];
 
-export { hasRole };
+export { hasExcludedRole, excludedRoleIds };

@@ -4,7 +4,9 @@ import {
 	PartialGuildMember,
 	TextChannel,
 } from 'discord.js';
+import { hasExcludedRole, excludedRoleIds } from '../Utils/ignore_role';
 import { Event } from '../types/Event';
+
 const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 	name: 'guildMemberUpdate',
 	once: false,
@@ -67,6 +69,34 @@ const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 				console.log(role);
 			}
 		}
+
+		const oneMonthAgo = new Date();
+		oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+		if (
+			!excludedRoleIds.some((roleId: string) =>
+				hasExcludedRole(newMember, roleId)
+			) &&
+			newMember.joinedAt &&
+			newMember.joinedAt < oneMonthAgo
+		) {
+			await newMember.kick(
+				'Inactive for more than 1 month without required role.'
+			);
+			const kickEmbed = new EmbedBuilder()
+				.setTitle('Member Kicked')
+				.setAuthor({
+					name: newMember.user.tag,
+					iconURL: newMember.user.displayAvatarURL(),
+				})
+				.setDescription(
+					`Member ${newMember} was kicked for being inactive for more than 1 month without required role.`
+				)
+				.setTimestamp();
+
+			await channel.send({ embeds: [kickEmbed] });
+		}
 	},
 };
+
 export default guildMemberUpdate;
