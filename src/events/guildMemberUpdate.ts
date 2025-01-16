@@ -30,10 +30,9 @@ const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 			(roleId) => !newRoles.has(roleId)
 		);
 
-		if (addedRoles.length > 0) {
-			for (const roleId of addedRoles) {
-				const role = newMember.guild.roles.cache.get(roleId);
-				console.log(role);
+		for (const roleId of addedRoles) {
+			const role = newMember.guild.roles.cache.get(roleId);
+			if (role) {
 				const embed = new EmbedBuilder()
 					.setTitle('Role Added')
 					.setAuthor({
@@ -50,9 +49,9 @@ const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 			}
 		}
 
-		if (removedRoles.length > 0) {
-			for (const roleId of removedRoles) {
-				const role = newMember.guild.roles.cache.get(roleId);
+		for (const roleId of removedRoles) {
+			const role = newMember.guild.roles.cache.get(roleId);
+			if (role) {
 				const embed = new EmbedBuilder()
 					.setTitle('Role Removed')
 					.setAuthor({
@@ -66,17 +65,18 @@ const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 					.setTimestamp();
 
 				await channel.send({ embeds: [embed] });
-				console.log(role);
 			}
 		}
 
 		const oneMonthAgo = new Date();
 		oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
+		const isExcluded = excludedRoleIds.some((roleId: string) =>
+			hasExcludedRole(newMember, roleId)
+		);
+
 		if (
-			!excludedRoleIds.some((roleId: string) =>
-				hasExcludedRole(newMember, roleId)
-			) &&
+			!isExcluded &&
 			newMember.joinedAt &&
 			newMember.joinedAt < oneMonthAgo
 		) {
