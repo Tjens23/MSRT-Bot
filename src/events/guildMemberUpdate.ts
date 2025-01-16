@@ -80,9 +80,16 @@ const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 			newMember.joinedAt &&
 			newMember.joinedAt < oneMonthAgo
 		) {
-			await newMember.kick(
-				'Inactive for more than 1 month without required role.'
-			);
+			await newMember
+				.kick('Inactive for more than 1 month without required role.')
+				.then((m) => {
+					m.send(
+						'You were kicked for being inactive for more than 1 month without required role.'
+					);
+				})
+				.catch((e) => {
+					channel.send('Failed to kick member. Error: ' + e);
+				});
 			const kickEmbed = new EmbedBuilder()
 				.setTitle('Member Kicked')
 				.setAuthor({
