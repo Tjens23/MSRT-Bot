@@ -1,11 +1,12 @@
+import { PartialGuildMember, GuildMember } from 'discord.js';
+import { Event } from 'src/types/Event';
+import { hasExcludedRole } from 'src/Utils/ignore_role';
 import {
-	EmbedBuilder,
-	GuildMember,
-	PartialGuildMember,
-	TextChannel,
-} from 'discord.js';
-import { hasExcludedRole, excludedRoleIds } from '../Utils/ignore_role';
-import { Event } from '../types/Event';
+	getLogChannel,
+	handleRoleChanges,
+	isMemberInactive,
+	kickInactiveMember,
+} from 'src/Utils/Utils';
 
 const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 	name: 'guildMemberUpdate',
@@ -14,59 +15,11 @@ const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 		oldMember: GuildMember | PartialGuildMember,
 		newMember: GuildMember
 	) {
-		const channel = newMember.guild.channels.cache.find(
-			(c) => c.name === 'botshit'
-		) as TextChannel;
-
+		const channel = getLogChannel(newMember, 'botshit');
 		if (!channel) return;
+		const excludedRoleIds: string[] = [];
 
-		const oldRoles = new Set(oldMember.roles.cache.keys());
-		const newRoles = new Set(newMember.roles.cache.keys());
-
-		const addedRoles = [...newRoles].filter(
-			(roleId) => !oldRoles.has(roleId)
-		);
-		const removedRoles = [...oldRoles].filter(
-			(roleId) => !newRoles.has(roleId)
-		);
-
-		for (const roleId of addedRoles) {
-			const role = newMember.guild.roles.cache.get(roleId);
-			if (role) {
-				const embed = new EmbedBuilder()
-					.setTitle('Role Added')
-					.setAuthor({
-						name: newMember.user.tag,
-						iconURL: newMember.user.displayAvatarURL(),
-					})
-					.setDescription(
-						`Role <@&${roleId}> was added to ${newMember}`
-					)
-					.setFooter({ text: `Role ID: ${roleId}` })
-					.setTimestamp();
-
-				await channel.send({ embeds: [embed] });
-			}
-		}
-
-		for (const roleId of removedRoles) {
-			const role = newMember.guild.roles.cache.get(roleId);
-			if (role) {
-				const embed = new EmbedBuilder()
-					.setTitle('Role Removed')
-					.setAuthor({
-						name: newMember.user.tag,
-						iconURL: newMember.user.displayAvatarURL(),
-					})
-					.setDescription(
-						`Role <@&${roleId}> was removed from ${newMember}`
-					)
-					.setFooter({ text: `Role ID: ${roleId}` })
-					.setTimestamp();
-
-				await channel.send({ embeds: [embed] });
-			}
-		}
+		await handleRoleChanges(oldMember, newMember, channel);
 
 		const oneMonthAgo = new Date();
 		oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
@@ -78,30 +31,10 @@ const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 		if (
 			!isExcluded &&
 			newMember.joinedAt &&
-			newMember.joinedAt < oneMonthAgo
+			newMember.joinedAt < oneMonthAgo &&
+			(await isMemberInactive(newMember, oneMonthAgo))
 		) {
-			await newMember
-				.kick('Inactive for more than 1 month without required role.')
-				.then((m) => {
-					m.send(
-						'You were kicked for being inactive for more than 1 month without required role.'
-					);
-				})
-				.catch((e) => {
-					channel.send('Failed to kick member. Error: ' + e);
-				});
-			const kickEmbed = new EmbedBuilder()
-				.setTitle('Member Kicked')
-				.setAuthor({
-					name: newMember.user.tag,
-					iconURL: newMember.user.displayAvatarURL(),
-				})
-				.setDescription(
-					`Member ${newMember} was kicked for being inactive for more than 1 month without required role.`
-				)
-				.setTimestamp();
-
-			await channel.send({ embeds: [kickEmbed] });
+			await kickInactiveMember(newMember, channel);
 		}
 	},
 };
