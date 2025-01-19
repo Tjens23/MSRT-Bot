@@ -1,12 +1,12 @@
 import { PartialGuildMember, GuildMember } from 'discord.js';
-import { Event } from 'src/types/Event';
-import { hasExcludedRole } from 'src/Utils/ignore_role';
+import { Event } from '../types/Event';
+import { hasExcludedRole } from '../Utils/ignore_role';
 import {
 	getLogChannel,
 	handleRoleChanges,
 	isMemberInactive,
 	kickInactiveMember,
-} from 'src/Utils/Utils';
+} from '../Utils/Utils';
 
 const guildMemberUpdate: Event<'guildMemberUpdate'> = {
 	name: 'guildMemberUpdate',
